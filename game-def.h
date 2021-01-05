@@ -1,11 +1,11 @@
 #pragma once
 
-static enum cell_colour {
+enum cell_colour {
 	cell_wild = 100,		// 超出棋盘
 	cell_bug = 101			// 未知错误
 };
 
-static enum modifier_return {
+enum modifier_return {
 	modifier_ok,			// 继续进行
 	modifier_abort			// 舍弃剩余处理操作, 全盘重算
 };
