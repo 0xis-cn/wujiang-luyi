@@ -2,7 +2,7 @@
  * 计算线程及其消息循环在 game-thread.c 实现, 该文件调用本文件的函数.
  *
  * 作者: 物灵
- * 日期: 2020-12-20
+ * 日期: 2021-01-05
  */
 
 #include "framework.h"
@@ -14,10 +14,6 @@
 static INT32 board[max_board_size][max_board_size], board_width, board_height;
 struct disp_register displayer;
 
-static struct revise_list {
-	INT32 x, y, priority;
-} revise_pool[max_revise_size];
-
 static INT32 sort_as_priority(void *u, void *v)
 {
 	return ((struct revise_list *)v)->priority
@@ -28,7 +24,7 @@ static INT32 sort_as_priority(void *u, void *v)
  * @x: 单元格的横坐标.
  * @y: 单元格的纵坐标.
  *
- * Return:
+ * 返回:
  * * %cell_wild - 所查询单元格不在棋盘范围.
  * * 其他 - 单元格的实际棋子种类.
  */
@@ -39,7 +35,13 @@ INT32 get_colour(INT32 x, INT32 y)
 	else return board[x][y];
 }
 
-exception_t set_colour(INT32 x, INT32 y, INT32 colour)
+/** get_colour() - 查询单元格上的棋子种类.
+ * @x: 单元格的横坐标.
+ * @y: 单元格的纵坐标.
+ *
+ * 返回: 异常.
+ */
+exce_t set_colour(INT32 x, INT32 y, INT32 colour)
 {
 	if (cell_wild != get_colour(x, y)) {
 		board[x][y] = colour;
@@ -47,26 +49,114 @@ exception_t set_colour(INT32 x, INT32 y, INT32 colour)
 	} else return exception_wild;
 }
 
-exception_t set_fall_down(INT32 x, INT32 y, INT32(*is_legal)(INT32))
+exce_t erase_colour(INT32 x, INT32 y)
 {
-	exception_t	e;
-
-	while (cell_wild != get_colour(x, y)) {
-		INT32 drag = x;
-		INT32 temp;
-
-		while (!is_legal(temp = get_colour(drag, y))) ++drag;
-		if (x == drag) continue;
-		if (exception_null != (e = set_colour(drag, y, get_colour(x, y))))
-			goto catcher;
-		if (exception_null != (e = set_colour(x, y, temp)))
-			goto catcher;
-		if (exception_null != (e = displayer.free_fall(x, y, drag, y)))
-			goto catcher;
-	}
+	board[x][y] = cell_blank;
+	displayer.erase(x, y);
 	return exception_null;
-catcher:
-	return e; // TODO: rewrite exceptions.
 }
 
+exce_t erase_range(INT32 x, INT32 y, INT32 x1, INT32 y1)
+{
+	int i, j;
+	for (i = x; i < x1; ++i) {
+		for (j = y; j < y1; ++j) {
+			board[i][j] = cell_blank;
+			displayer.erase(i, j);
+		}
+	}
+	return exception_null;
+}
 
+/** set_fall_cell() - 将 (xfrom, yfrom) 与 (xto, yto) 互换.
+ * @xto: 到达点的横坐标.
+ * @yto: 到达点的纵坐标.
+ * @xfrom: 出发点的横坐标.
+ * @yfrom: 出发点的纵坐标.
+ *
+ * 返回: 恒无异常.
+ */
+exce_t set_swap(INT32 xto, INT32 yto, INT32 xfrom, INT32 yfrom)
+{
+	int temp = get_colour(xfrom, yfrom);
+	set_colour(xfrom, yfrom, get_colour(xto, yto));
+	set_colour(xto, yto, temp);
+	displayer.erase(xfrom, yfrom);
+	displayer.erase(xto, yto);
+	displayer.free_fall(xfrom, yfrom, xto, yto, get_colour(xfrom, yfrom));
+	displayer.free_fall(xto, yto, xfrom, yfrom, temp);
+	return exception_null;
+}
+
+/** set_fall_cell() - 用 (xfrom, yfrom) 覆盖 (xto, yto).
+ * @xto: 到达点的横坐标.
+ * @yto: 到达点的纵坐标.
+ * @xfrom: 出发点的横坐标.
+ * @yfrom: 出发点的纵坐标.
+ *
+ * 返回: 恒无异常.
+ */
+exce_t set_fall_cell(INT32 xto, INT32 yto, INT32 xfrom, INT32 yfrom)
+{
+	int temp = get_colour(xfrom, yfrom);
+	set_colour(xfrom, yfrom, get_colour(xto, yto));
+	set_colour(xto, yto, temp);
+	displayer.erase(xfrom, yfrom);
+	displayer.free_fall(xto, yto, xfrom, yfrom, temp);
+	return exception_null;
+}
+
+/** set_fall_range() - 对 ([0..x], y) 进行自由下落 (不含 x).
+ * @x: 单元格的横坐标.
+ * @y: 单元格的纵坐标.
+ *
+ * 返回: 整数 r 表示 [0..r] (不含 r) 为空, 恒无异常.
+ * 
+ * 历史版本:
+ * 2020-12-20 创建
+ * 2020-01-05 废除原有基于两次循环的复杂做法
+ */
+struct int32_maybe set_fall_range(INT32 x, INT32 y, INT32(*is_legal)(INT32))
+{
+	int i, j;
+	struct int32_maybe result;
+
+	result.exce = exception_null;
+
+	for (i = x - 1, j = x; i >= 0; --i) {
+		if (is_legal(get_colour(i, y)) && i != --j)
+			set_fall_cell(j, y, i, y);
+	}
+
+	result.data = j;
+	return result;
+}
+
+exce_t set_move(INT32 xto, INT32 yto,
+				INT32 xto1, INT32 yto1, INT32 xfrom, INT32 yfrom)
+{
+	int i, j;
+	static int buffer[max_board_size][max_board_size];
+
+	for (i = 0; xto + i < xto1; ++i)
+		memcpy(buffer[i], yfrom + board[xfrom + i], sizeof(INT32) * (yto1 - yto));
+	erase_range(xfrom, yfrom, xto1 - xto + xfrom, yto1 - yto + yfrom);
+
+	for (i = 0; xto + i < xto1; ++i) {
+		memcpy(yto + board[xto + i], buffer[i], sizeof(INT32) * (yto1 - yto));
+		for (j = 0; yto + j < yto1; ++j)
+			displayer.free_fall(xto + i, yto + j, xfrom + i, yfrom + j, buffer[i][j]);
+	}
+
+	return exception_null;
+}
+
+exce_t force_draw(void)
+{
+	int i, j;
+	for (i = 0; i < board_width; ++i)
+		for (j = 0; j < board_height; ++j)
+			displayer.display(i, j, board[i][j]);
+
+	return exception_null;
+}
