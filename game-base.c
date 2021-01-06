@@ -146,6 +146,7 @@ exce_t set_force_draw(void)
 
 exce_t set_flush(void)
 {
-	displayer.flush();
+// TODO: step 1: call free fall
+// TODO: step 2: add new points
 }
 
