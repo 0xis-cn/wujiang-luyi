@@ -151,7 +151,7 @@ exce_t set_move(INT32 xto, INT32 yto,
 	return exception_null;
 }
 
-exce_t force_draw(void)
+exce_t set_force_draw(void)
 {
 	int i, j;
 	for (i = 0; i < board_width; ++i)
@@ -160,3 +160,9 @@ exce_t force_draw(void)
 
 	return exception_null;
 }
+
+exce_t set_flush(void)
+{
+	displayer.flush();
+}
+

@@ -24,6 +24,7 @@ struct disp_register {
 	exce_t(*display)(INT32, INT32, INT32);
 	exce_t(*erase)(INT32, INT32);
 	exce_t(*free_fall)(INT32, INT32, INT32, INT32, INT32);
+	exce_t(*flush)(void);
 };
 
 struct revise_list {
