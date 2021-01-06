@@ -1,5 +1,6 @@
 /** game-base.c - 游戏的工具集.
- * 计算线程及其消息循环在 game-thread.c 实现, 该文件调用本文件的函数.
+ * 计算线程及其消息循环在 game-thread.c 实现,
+ * only gamerule use functions here.
  *
  * 作者: 物灵
  * 日期: 2021-01-05
@@ -14,33 +15,15 @@
 static INT32 board[max_board_size][max_board_size], board_width, board_height;
 struct disp_register displayer;
 
-static INT32 sort_as_priority(void *u, void *v)
+exce_t set_size(INT32 width, INT32 height)
 {
-	return ((struct revise_list *)v)->priority
-		- ((struct revise_list *)u)->priority;
+	if (board_width > max_board_size || board_height > max_board_size)
+		return exception_wild;
+	board_width = width, board_height = height;
+	return exception_null;
 }
 
-/** get_colour() - 查询单元格上的棋子种类.
- * @x: 单元格的横坐标.
- * @y: 单元格的纵坐标.
- *
- * 返回:
- * * %cell_wild - 所查询单元格不在棋盘范围.
- * * 其他 - 单元格的实际棋子种类.
- */
-INT32 get_colour(INT32 x, INT32 y)
-{
-	if (x < 0 || y < 0 || x >= board_width || y >= board_height)
-		return (INT32)cell_wild;
-	else return board[x][y];
-}
-
-/** get_colour() - 查询单元格上的棋子种类.
- * @x: 单元格的横坐标.
- * @y: 单元格的纵坐标.
- *
- * 返回: 异常.
- */
+// This function is to determine whether to keep
 exce_t set_colour(INT32 x, INT32 y, INT32 colour)
 {
 	if (cell_wild != get_colour(x, y)) {
