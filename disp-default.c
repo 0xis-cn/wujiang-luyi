@@ -1,5 +1,5 @@
-/** disp-default.c - Default displayer.
- * When &flush() is called, we merge everything in the Queue and generate 
+/** disp-default.c - Default displayer. 默认视感.
+ * 一步到位, 不加动画.
  */
 
 

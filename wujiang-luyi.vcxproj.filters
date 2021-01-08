@@ -47,6 +47,12 @@
     <ClCompile Include="gamemode-loader.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="disp-default.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="rule-default.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
