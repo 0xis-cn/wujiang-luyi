@@ -11,6 +11,8 @@
 
 static INT32 board[max_board_size][max_board_size], board_width, board_height;
 static INT32 drop_above[max_board_size], cur_stamp, score = 0;
+static INT32 qx[max_board_size * max_board_size];
+static INT32 qy[max_board_size * max_board_size], qhead = 0;
 struct disp_register displayer;
 struct rule_register rule;
 
@@ -29,6 +31,7 @@ exce_t start_game(
 {
 	displayer = *cur_disp;
 	rule = *cur_rule;
+	cur_rule->on_new_game(board);
 	return exception_null;
 }
 
@@ -54,8 +57,10 @@ exce_t on_user_trait(INT32 xto, INT32 yto, INT32 xfrom, INT32 yfrom)
 	set_swap(xto, yto, xfrom, yfrom);
 	if ((cur = rule.on_first_trait(board, ++cur_stamp, xto, yto, xfrom, yfrom)))
 		do score += cur; while ((cur = rule.on_next_trait(board, ++cur_stamp)));
-	else
+	else {
 		set_swap(xto, yto, xfrom, yfrom);
+		displayer.flush();
+	}
 
 	if (cur_stamp > max_board_size) cur_stamp = 3;
 	return exception_null;
@@ -73,7 +78,7 @@ exce_t create_map(INT32 height, INT32 width)
 exce_t erase_colour(INT32 x, INT32 y)
 {
 	if (drop_above[y] <= x) drop_above[y] = 1 + x;
-	board[x][y] = cell_blank;
+	qx[++qhead] = x, qy[qhead] = y;
 	displayer.erase(x, y);
 	return exception_null;
 }
@@ -97,7 +102,7 @@ exce_t erase_range(INT32 x, INT32 y, INT32 x1, INT32 y1)
 	int i, j;
 	for (i = x; i < x1; ++i) {
 		for (j = y; j < y1; ++j) {
-			board[i][j] = cell_blank;
+			qx[++qhead] = i, qy[qhead] = j;
 			displayer.erase(i, j);
 		}
 	}
@@ -180,6 +185,7 @@ exce_t set_random_fill(INT32 x, INT32 y)
 exce_t set_flush_with_fall(void)
 {
 	int i;
+	do board[qx[qhead]][qy[qhead]] = cell_blank; while (--qhead);
 	for (i = 0; i < board_width; ++i)
 		if (drop_above[i])
 			set_random_fill(set_fall_range(drop_above[i], i, isnotblank).data, i);

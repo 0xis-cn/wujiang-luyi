@@ -32,16 +32,18 @@ INT32 on_next_trait(const INT32(*board)[max_board_size], INT32 cur_time)
 		for (j = 0; j < board_width; ++j) {
 			if (i + 2 < board_height &&
 				board[i][j] == board[i + 1][j] &&
-				board[i][j] == board[i + 2][j])
+				board[i][j] == board[i + 2][j]) {
 				result += check_stamp(i, j, cur_time)
-						+ check_stamp(i + 1, j, cur_time)
-						+ check_stamp(i + 2, j, cur_time);
+					+ check_stamp(i + 1, j, cur_time)
+					+ check_stamp(i + 2, j, cur_time);
+			}
 			if (j + 2 < board_width &&
 				board[i][j] == board[i][j + 1] &&
-				board[i][j] == board[i][j + 2])
+				board[i][j] == board[i][j + 2]) {
 				result += check_stamp(i, j, cur_time)
-						+ check_stamp(i, j + 1, cur_time)
-						+ check_stamp(i, j + 2, cur_time);
+					+ check_stamp(i, j + 1, cur_time)
+					+ check_stamp(i, j + 2, cur_time);
+			}
 		}
 	if (result) base.set_flush_with_fall();
 	return result;
@@ -72,7 +74,8 @@ exce_t on_new_game(INT32(*board)[max_board_size])
 		for (j = 0; j < zanshi; ++j)
 			board[i][j] = midway_new_colour();
 
-	base.create_map(zanshi, zanshi);
+	base.create_map(board_height = zanshi, board_width = zanshi);
+	for (j = max_board_size; on_next_trait(board, j); ++j);
 	return exception_null;
 }
 
