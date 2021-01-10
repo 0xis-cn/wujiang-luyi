@@ -5,7 +5,7 @@
  * 作者: 物灵
  * 日期: 2020-12-16
  */
-
+#ifndef _DEBUG
 #include "framework.h"
 #include "wujiang-luyi.h"
 
@@ -203,3 +203,4 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	return (INT_PTR)FALSE;
 }
+#endif // _DEBUG
