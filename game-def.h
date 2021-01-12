@@ -1,15 +1,32 @@
 #pragma once
-typedef int exce_t;	// 暂时不知道用什么表示异常
 
+#define MAX_LOADSTRING 100
 #define max_board_size 100
-#define max_revise_size 65535
-
+#define max_colour 4096
+#define colour_reserved 1023
+#define max_queue max_board_size * max_board_size
+#define golden_ratio 0.618033988749895 // 黄金分割.
+#define lucky_num 0.1
+#define side_bar 0.5
+#define refresh_time 100
+#define config_filename "config.json"
 
 #include "framework.h"
 
+typedef struct mJson {
+	struct mJson *next, *prev;
+	enum mJsonType type;
+	char *key;
+	union mJsonData {
+		struct dualNum { int integer; double real; } num;
+		char *str;
+		struct mJson *child;
+	} data;
+} mJson;
+
 struct int32_maybe {
 	INT32 data;
-	exce_t exce;
+	BOOL exce;
 };
 
 enum cell_colour {
@@ -23,36 +40,42 @@ enum modifier_return {
 	modifier_abort			// 舍弃剩余处理操作, 全盘重算
 };
 
-#define exception_null 0
 #define exception_wild cell_wild // TODO: rewrite exceptions.
 
-struct disp_register {
+/*struct disp_register {
 	size_t size;
-	exce_t(*new_map)(INT32, INT32, INT32(*)[max_board_size]);
-	exce_t(*midway_display)(INT32, INT32, INT32);
-	exce_t(*erase)(INT32, INT32);
-	exce_t(*free_fall)(INT32, INT32, INT32, INT32, INT32);
-	exce_t(*flush)(VOID);
-};
+	BOOL(*new_map)(INT32, INT32, const INT32(*)[max_board_size]);
+	BOOL(*midway_display)(INT32, INT32, INT32);
+	BOOL(*erase)(INT32, INT32);
+	BOOL(*free_fall)(INT32, INT32, INT32, INT32, INT32);
+	BOOL(*flush)(VOID);
+	struct disp_register *next;
+};*/
 
+// 已注册的游戏规则.
 struct rule_register {
 	size_t size;
-	exce_t(*on_new_game)(INT32(*)[max_board_size]);
-	INT32(*on_first_trait)(
+	BOOL(*on_new_game)(INT32(*)[max_board_size], mJson *);
+	INT32(*first_trait)(
 		const INT32(*)[max_board_size], INT32, INT32, INT32, INT32, INT32);
-	INT32(*on_next_trait)(const INT32(*)[max_board_size], INT32);
-	INT32(*midway_new_colour)(VOID); // 中途加入的随机合法颜色
+	INT32(*next_trait)(const INT32(*)[max_board_size], INT32);
+	INT32(*midway_new_colour)(VOID); // 中途加入的随机合法颜色.
+	struct rule_register *next;
 };
 
 struct base_register {
 	size_t size;
-	exce_t(*set_colour)(INT32, INT32, INT32);
-	exce_t(*create_map)(INT32, INT32);
-	exce_t(*set_fall_cell)(INT32, INT32, INT32, INT32);
+	BOOL(*set_colour)(INT32, INT32, INT32);
+	BOOL(*create_map)(INT32, INT32);
+	BOOL(*set_fall_cell)(INT32, INT32, INT32, INT32);
 	struct int32_maybe(*set_fall_range)(INT32, INT32, INT32(*)(INT32));
-	exce_t(*set_flush_with_fall)(VOID);
-	exce_t(*set_random_fill)(INT32, INT32);
-	exce_t(*set_swap)(INT32, INT32, INT32, INT32);
-	exce_t(*erase_colour)(INT32, INT32);
-	exce_t(*erase_range)(INT32, INT32, INT32, INT32);
+	BOOL(*set_flush_with_fall)(VOID);
+	BOOL(*set_random_fill)(INT32, INT32);
+	BOOL(*set_swap)(INT32, INT32, INT32, INT32);
+	BOOL(*erase_colour)(INT32, INT32);
+	BOOL(*erase_range)(INT32, INT32, INT32, INT32);
 };
+
+
+INT32 mjson_get_int_or_default(mJson *json_obj, const char *key, INT32 value);
+double mjson_get_real_or_default(mJson *json_obj, const char *key, double value);

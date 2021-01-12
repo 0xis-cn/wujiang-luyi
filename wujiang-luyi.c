@@ -1,20 +1,13 @@
-﻿/** wujiang-luyi.c - 生成程序窗口.
- * 本文件由 Visual Studio 自动生成. 本人用多行注释进行标注.
- * TODO: 修改菜单栏 (可能移除)
- *
- * 作者: 物灵
- * 日期: 2020-12-16
- */
-#ifndef _DEBUG
-#include "framework.h"
+﻿#include "game-def.h"
 #include "wujiang-luyi.h"
 
-#define MAX_LOADSTRING 100
+enum game_status { st_blank, st_opening, st_setting } cur_status = st_blank;
 
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
 WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
+mJson *cur_json;
 
 // 此代码模块中包含的函数的前向声明:
 
@@ -36,7 +29,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	// TODO: 在此处放置代码.
+	mJson *load_json(VOID);
+	cur_json = load_json();
 
 	// 初始化全局字符串
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -52,16 +46,27 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WJLY));
 
 	MSG msg;
+	GetMessage(&msg, NULL, 0, 0);
+	INT64 time_now, time_pre = 0;
 
-	// 主消息循环:
-	while (GetMessage(&msg, NULL, 0, 0))
-	{ /* 从消息队列取得消息到 msg */
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-		{
-			TranslateMessage(&msg); /* 翻译键盘消息 */
-			DispatchMessage(&msg); /* 送往应用程序窗口函数 */
+	while (msg.message != WM_QUIT) {
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+			if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg)) {
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		} else if (cur_status == st_opening) { // 仅当游戏进行中才调用
+			extern BOOL on_beat(HDC); // 显示单元提供
+			time_now = GetTickCount64();
+			if (time_now - time_pre >= refresh_time) {
+				time_pre = time_now;
+				on_beat(GetDC(msg.hwnd));
+			}
 		}
 	}
+
+	BOOL mjson_write(mJson *json_obj);
+	mjson_write(cur_json);
 
 	return (int)msg.wParam; /* 带着 msg 的 wpara 参数返回操系 */
 }
@@ -88,7 +93,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WJLY)); /* 载入图标 */
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW); /* 载入鼠标 */
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); /* 背景画刷 */
-	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_WJLY); /* 菜单名 */
+ 	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_WJLY); /* 菜单名 */
 	wcex.lpszClassName = szWindowClass; /* 窗口类名 */
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -133,6 +138,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	return TRUE;
 }
 
+POINT point_by_lparam(LPARAM lpa)
+{
+	INT32 xpos = GET_X_LPARAM(lpa), ypos = GET_Y_LPARAM(lpa);
+	extern INT32 which_horn_main(INT32), which_vert_main(INT32);
+	POINT result = { .y = which_horn_main(xpos), .x = which_vert_main(ypos) };
+	return result;
+}
+
 //
 //  函数: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -145,8 +158,48 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 { /* 窗口函数 */
+	static BOOL mouse_drag = FALSE;
+	static POINT from_point = { .x = -1, .y = -1 };
+	static POINT to_point = { .x = -1, .y = -1 };
 	switch (message)
 	{
+	case WM_LBUTTONDOWN:
+	{
+		mouse_drag = TRUE;
+		POINT now = point_by_lparam(lParam);
+		extern BOOL draw_active(INT32, INT32, HDC);
+		draw_active(now.x, now.y, GetDC(hWnd));
+		if (now.x != -1 && now.y != -1) {
+			if (from_point.x == -1 && from_point.y == -1) {
+				from_point = now;
+				to_point.x = to_point.y = -1;
+			} else to_point = now;
+		}
+		break;
+	}
+	case WM_LBUTTONUP:
+	case WM_MOUSELEAVE: // 离开窗口视同于松开
+		mouse_drag = FALSE;
+		if (to_point.x != -1 && to_point.y != -1) {
+			extern BOOL draw_inactive(INT32, INT32, HDC);
+			extern BOOL on_user_trait(INT32, INT32, INT32, INT32);
+			draw_inactive(to_point.x, to_point.y, GetDC(hWnd));
+			draw_inactive(from_point.x, from_point.y, GetDC(hWnd));
+			on_user_trait(to_point.x, to_point.y, from_point.x, from_point.y);
+			from_point.x = from_point.y = to_point.x = to_point.y = -1;
+		}
+		break;
+	case WM_MOUSEMOVE:
+		if (mouse_drag && to_point.x == -1) {
+			POINT now = point_by_lparam(lParam);
+			if ((now.x != -1 && now.y != -1) &&
+				(now.x != from_point.x || now.y != from_point.y)) {
+				to_point = now;
+				draw_active(now.x, now.y, GetDC(hWnd));
+			}
+		}
+		break;
+
 	case WM_COMMAND:
 	{
 		int wmId = LOWORD(wParam);
@@ -156,8 +209,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
-		case IDM_EXIT:
-			DestroyWindow(hWnd);
+		case IDC_STARTGAME:
+			extern BOOL loader_start_game(mJson *); // 打开游戏
+			cur_status = st_opening;
+			loader_start_game(cur_json);
+			break;
+		case IDM_CONFIG:
+			BOOL mjson_write(mJson * json_obj);
+			mjson_write(cur_json);
+			system("notepad " config_filename);
+			mJson *load_json(VOID);
+			cur_json = load_json();
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -166,17 +228,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_PAINT: /* 主程序执行 ShowWindows() 时 Windows 发出此消息 */
 	{
-		PAINTSTRUCT ps; /* 保存绘图信息的结构 */
-		HDC hdc = BeginPaint(hWnd, &ps); /* 设备描述表代号 */
-		RECT rect; /* 矩形结构 */
-		GetClientRect(hWnd, &rect); /* 取得客户区的大小到 rect */
-		DrawText(hdc, TEXT("I love ZYQ"), -1, &rect,
-			DT_SINGLELINE | DT_CENTER | DT_VCENTER);
-		EndPaint(hWnd, &ps); /* 结束画图, 释放设备描述表代号 */
+		switch (cur_status) {
+		case st_blank:
+			break;
+		case st_opening:
+			extern BOOL on_redraw(HWND); // 重绘
+			on_redraw(hWnd);
+			break;
+		case st_setting:
+			break;
+		}
 	}
 	break;
 	case WM_DESTROY:
-		PostQuitMessage(0); /* 把 WM_QUIET 发至应用程序消息队列 */
+		PostQuitMessage(0); /* 把 WM_QUIT 发至应用程序消息队列 */
 		break; /* 返回 wWinMain() 中的消息循环 */
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam); /* 不尽处理 */
@@ -203,4 +268,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	return (INT_PTR)FALSE;
 }
-#endif // _DEBUG

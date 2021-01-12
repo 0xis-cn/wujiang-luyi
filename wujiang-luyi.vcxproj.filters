@@ -30,30 +30,27 @@
     <ClInclude Include="game-def.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="forward.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wujiang-luyi.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="game-thread.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="game-base.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="game-util.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="gamemode-loader.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="disp-default.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="rule-default.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="cli-debug.c">
+    <ClCompile Include="game-loader.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="drawer.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="mjson.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

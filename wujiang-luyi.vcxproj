@@ -31,7 +31,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -102,11 +102,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -141,16 +141,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="cli-debug.c" />
-    <ClCompile Include="disp-default.c" />
-    <ClCompile Include="game-thread.c" />
+    <ClCompile Include="drawer.c" />
     <ClCompile Include="game-base.c" />
-    <ClCompile Include="game-util.c" />
-    <ClCompile Include="gamemode-loader.c" />
+    <ClCompile Include="game-loader.c" />
+    <ClCompile Include="mjson.c" />
     <ClCompile Include="rule-default.c" />
     <ClCompile Include="wujiang-luyi.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="forward.h" />
     <ClInclude Include="game-def.h" />
     <ClInclude Include="wujiang-luyi.h" />
     <ClInclude Include="framework.h" />
