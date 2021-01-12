@@ -142,7 +142,11 @@ void mJsonDel(mJson *c) {
 mJson *load_json(VOID)
 {
     FILE *json_file;
-    CHAR buffer[max_json_length] = "{}", *cur = buffer;
+    CHAR buffer[max_json_length] = "{\n"
+        "\t\"description\": [\n"
+        "\t\t\"Please modify Settings of this Game here.\",\n"
+        "\t\t\"Sorry but it is too complicated to write a Setting Window.\",\n"
+        "}\n", *cur = buffer;
 
     if (!fopen_s(&json_file, config_filename, "r")) {
         INT32 next_char;
@@ -252,7 +256,7 @@ BOOL mjson_add_int(mJson *json_obj, const char *key, INT32 value)
 
 BOOL mjson_add_real(mJson *json_obj, const char *key, double value)
 {
-    INT32 len;
+    INT32 len = strlen(key) + 1;
     mJson *child_item = json_obj->data.child;
     while (json_obj->next) json_obj = json_obj->next;
     json_obj->next = (mJson *)malloc(sizeof(mJson));
@@ -262,8 +266,8 @@ BOOL mjson_add_real(mJson *json_obj, const char *key, double value)
     json_obj->next->type = JNUM;
     json_obj->next->data.num.integer = value;
     json_obj->next->data.num.real = value;
-    return ((json_obj->next->key = malloc((len = strlen(key)) + 1)))
-        && !strcpy_s(json_obj->next->key, len, key);
+    json_obj->next->key = malloc(len);
+    return !strcpy_s(json_obj->next->key, len, key);
 }
 
 INT32 mjson_get_int_or_default(mJson *json_obj, const char *key, INT32 value)

@@ -215,7 +215,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			loader_start_game(cur_json);
 			break;
 		case IDM_CONFIG:
-			BOOL mjson_write(mJson * json_obj);
+			BOOL mjson_write(mJson *json_obj);
 			mjson_write(cur_json);
 			system("notepad " config_filename);
 			mJson *load_json(VOID);
